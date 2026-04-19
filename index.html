@@ -765,25 +765,25 @@ const TABLES = {
 async function initializeDatabase() {
   try {
     // Create users table if it doesn't exist
-    const { error: usersError } = await supabase.rpc('create_users_table_if_not_exists');
+    const { error: usersError } = await supabaseClient.rpc('create_users_table_if_not_exists');
     if (usersError && !usersError.message.includes('already exists')) {
       console.error('Error creating users table:', usersError);
     }
 
     // Create students table if it doesn't exist
-    const { error: studentsError } = await supabase.rpc('create_students_table_if_not_exists');
+    const { error: studentsError } = await supabaseClient.rpc('create_students_table_if_not_exists');
     if (studentsError && !studentsError.message.includes('already exists')) {
       console.error('Error creating students table:', studentsError);
     }
 
     // Create topics table if it doesn't exist
-    const { error: topicsError } = await supabase.rpc('create_topics_table_if_not_exists');
+    const { error: topicsError } = await supabaseClient.rpc('create_topics_table_if_not_exists');
     if (topicsError && !topicsError.message.includes('already exists')) {
       console.error('Error creating topics table:', topicsError);
     }
 
     // Create activities table if it doesn't exist
-    const { error: activitiesError } = await supabase.rpc('create_activities_table_if_not_exists');
+    const { error: activitiesError } = await supabaseClient.rpc('create_activities_table_if_not_exists');
     if (activitiesError && !activitiesError.message.includes('already exists')) {
       console.error('Error creating activities table:', activitiesError);
     }
@@ -796,7 +796,7 @@ async function initializeDatabase() {
 // User management functions
 async function saveUser(userData) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.users)
       .upsert(userData, { onConflict: 'username' });
     if (error) throw error;
@@ -809,7 +809,7 @@ async function saveUser(userData) {
 
 async function getUser(username) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.users)
       .select('*')
       .eq('username', username)
@@ -824,7 +824,7 @@ async function getUser(username) {
 
 async function getAllUsers() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.users)
       .select('*');
     if (error) throw error;
@@ -838,7 +838,7 @@ async function getAllUsers() {
 // Student management functions
 async function saveStudent(studentData) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.students)
       .upsert(studentData, { onConflict: 'id' });
     if (error) throw error;
@@ -851,7 +851,7 @@ async function saveStudent(studentData) {
 
 async function getAllStudents() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.students)
       .select('*');
     if (error) throw error;
@@ -864,7 +864,7 @@ async function getAllStudents() {
 
 async function updateStudent(id, updates) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.students)
       .update(updates)
       .eq('id', id);
@@ -878,7 +878,7 @@ async function updateStudent(id, updates) {
 
 async function deleteStudent(id) {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from(TABLES.students)
       .delete()
       .eq('id', id);
@@ -893,7 +893,7 @@ async function deleteStudent(id) {
 // Topic management functions
 async function saveTopic(topicData) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.topics)
       .upsert(topicData, { onConflict: 'id' });
     if (error) throw error;
@@ -906,7 +906,7 @@ async function saveTopic(topicData) {
 
 async function getAllTopics() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.topics)
       .select('*');
     if (error) throw error;
@@ -919,7 +919,7 @@ async function getAllTopics() {
 
 async function updateTopic(id, updates) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.topics)
       .update(updates)
       .eq('id', id);
@@ -933,7 +933,7 @@ async function updateTopic(id, updates) {
 
 async function deleteTopic(id) {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from(TABLES.topics)
       .delete()
       .eq('id', id);
@@ -948,7 +948,7 @@ async function deleteTopic(id) {
 // Activity management functions
 async function saveActivity(activityData) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.activities)
       .insert(activityData);
     if (error) throw error;
@@ -961,7 +961,7 @@ async function saveActivity(activityData) {
 
 async function getAllActivities() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from(TABLES.activities)
       .select('*')
       .order('timestamp', { ascending: false });
@@ -1045,9 +1045,9 @@ const STORAGE = {
 };
 
 // Supabase Configuration
-const SUPABASE_URL = 'https://msjgwgffrxyzmducmemt.supabase.co'; // Replace with your Supabase URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zamd3Z2Zmcnh5em1kdWNtZW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MDYzMTMsImV4cCI6MjA5MjE4MjMxM30.OwMszZVSjg5ZjZeOxwArcyqC-8__vBCyAIWTuzRUjhs'; // Replace with your Supabase anon key
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = 'https://your-project-id.supabase.co'; // Replace with your actual Supabase URL
+const SUPABASE_ANON_KEY = 'your-anon-key'; // Replace with your actual Supabase anon key
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let isLoginMode = true;
 let loginRole = 'admin';
@@ -1447,11 +1447,11 @@ async function loadData() {
       });
     } else {
       // Load seed data if no data in Supabase
-      SEED_STUDENTS.forEach(s => {
+      for (const s of SEED_STUDENTS) {
         s.streak = calculateStreak(s.loginHistory);
         state.students.append(s);
-        saveStudent(s); // Save to Supabase
-      });
+        await saveStudent(s); // Save to Supabase
+      }
     }
 
     // Load topics
@@ -1461,10 +1461,10 @@ async function loadData() {
       topicsData.forEach(t => state.topics.append(t));
     } else {
       // Load seed data if no data in Supabase
-      SEED_TOPICS.forEach(t => {
+      for (const t of SEED_TOPICS) {
         state.topics.append(t);
-        saveTopic(t); // Save to Supabase
-      });
+        await saveTopic(t); // Save to Supabase
+      }
     }
 
     // Load activities
@@ -1472,7 +1472,7 @@ async function loadData() {
     state.activities = new LinkedList();
     activitiesData.forEach(a => state.activities.append(a));
 
-    syncAllStudentTasks();
+    await syncAllStudentTasks();
     console.log('Data loaded from Supabase successfully');
   } catch (error) {
     console.error('Error loading data from Supabase:', error);
@@ -1501,7 +1501,7 @@ async function loadData() {
     } else {
       SEED_TOPICS.forEach(t => state.topics.append(t));
     }
-    syncAllStudentTasks();
+    await syncAllStudentTasks();
   }
 }
 
