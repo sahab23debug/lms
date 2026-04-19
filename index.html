@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DSA Tracker — Instructor Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg: #0c0e14;
@@ -516,7 +517,7 @@
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Topic</th><th>Category</th><th>Difficulty</th><th>Problems</th><th>Completion</th><th>Students</th></tr>
+                  <tr><th>Topic</th><th>Category</th><th>Difficulty</th><th>Tasks</th><th>Completion</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="topics-tbody"></tbody>
               </table>
@@ -578,69 +579,89 @@
   </div><!-- /layout -->
 </div><!-- /app -->
 
-<div id="student-app" style="display:none;">
-  <div class="content" style="padding:24px; max-width:1200px; margin:0 auto;">
-    <!-- Header -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
-      <div>
-        <div class="section-title" id="student-page-title" style="font-size:18px;margin-bottom:2px;">Student Dashboard</div>
-        <div style="font-size:12px;color:var(--text2);" id="student-welcome">Welcome back</div>
+<div id="student-app" style="display:none; height: 100vh; overflow: hidden;">
+  <div class="layout">
+    <!-- STUDENT SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">DSA TRACKER<span>Student Portal</span></div>
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" onclick="navigateStudent('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
+        <div class="nav-label" style="margin-top:14px;">Learning</div>
+        <div class="nav-item" onclick="navigateStudent('courses',this)"><span class="nav-icon">⟐</span> Courses</div>
+        <div class="nav-item" onclick="navigateStudent('tasks',this)"><span class="nav-icon">◈</span> Tasks</div>
+        <div class="nav-label" style="margin-top:14px;">History</div>
+        <div class="nav-item" onclick="navigateStudent('activity',this)"><span class="nav-icon">◎</span> Activity Log</div>
       </div>
-      <button class="logout-btn" onclick="handleLogout()"><span style="font-size:16px">⏻</span> Logout</button>
-    </div>
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="handleLogout()"><span style="font-size:16px">⏻</span> Logout</button>
+      </div>
+    </nav>
 
-    <!-- Metrics -->
-    <div class="metrics" id="student-metrics" style="margin-bottom:20px;"></div>
-
-    <!-- Activity -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">Your Activity</span></div>
-      <div class="card-body" id="student-activity"></div>
-    </div>
-
-    <!-- Topics -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">Your Topics</span></div>
-      <div class="card-body" id="student-topics"></div>
-    </div>
-
-    <!-- Courses -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">Courses</span></div>
-      <div class="card-body" id="student-courses"></div>
-    </div>
-
-    <!-- Tasks -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">Tasks</span></div>
-      <div class="card-body" id="student-tasks"></div>
-    </div>
-
-    <!-- Login Activity Heatmap -->
-    <div class="card">
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-        <span class="card-title">Your Login Activity</span>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
-          <button class="nav-calendar-btn" onclick="prevStudentMonth()">←</button>
-          <span id="student-calendar-month" style="min-width:120px;text-align:center;font-weight:600;color:var(--text2);">January 2026</span>
-          <button class="nav-calendar-btn" onclick="nextStudentMonth()">→</button>
+    <!-- STUDENT MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <span class="page-title" id="student-topbar-title">Dashboard</span>
         </div>
       </div>
-      <div id="student-heatmap-wrapper" style="padding:16px 20px;">
-        <div id="student-calendar-header">
-          <div class="calendar-day-label">Sun</div>
-          <div class="calendar-day-label">Mon</div>
-          <div class="calendar-day-label">Tue</div>
-          <div class="calendar-day-label">Wed</div>
-          <div class="calendar-day-label">Thu</div>
-          <div class="calendar-day-label">Fri</div>
-          <div class="calendar-day-label">Sat</div>
+
+      <div class="content">
+        <!-- ── STUDENT DASHBOARD PAGE ── -->
+        <div class="page active" id="student-page-dashboard">
+          <div id="student-welcome" style="margin-bottom: 20px; font-weight: 600; font-size: 16px;">Welcome back</div>
+          <div class="metrics" id="student-metrics" style="margin-bottom:20px;"></div>
+          
+          <div class="card">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="card-title">Your Login Activity</span>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+                <button class="nav-calendar-btn" onclick="prevStudentMonth()">←</button>
+                <span id="student-calendar-month" style="min-width:120px;text-align:center;font-weight:600;color:var(--text2);">January 2026</span>
+                <button class="nav-calendar-btn" onclick="nextStudentMonth()">→</button>
+              </div>
+            </div>
+            <div id="student-heatmap-wrapper" style="padding:16px 20px;">
+              <div id="student-calendar-header">
+                <div class="calendar-day-label">Sun</div><div class="calendar-day-label">Mon</div><div class="calendar-day-label">Tue</div><div class="calendar-day-label">Wed</div><div class="calendar-day-label">Thu</div><div class="calendar-day-label">Fri</div><div class="calendar-day-label">Sat</div>
+              </div>
+              <div id="student-heatmap"></div>
+            </div>
+          </div>
         </div>
-        <div id="student-heatmap"></div>
+
+        <!-- ── STUDENT COURSES PAGE ── -->
+        <div class="page" id="student-page-courses">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Completed Topics</span></div>
+            <div class="card-body" id="student-topics"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Available Courses</span></div>
+            <div class="card-body" id="student-courses"></div>
+          </div>
+        </div>
+
+        <!-- ── STUDENT TASKS PAGE ── -->
+        <div class="page" id="student-page-tasks">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Current Tasks</span></div>
+            <div class="card-body" id="student-tasks"></div>
+          </div>
+        </div>
+
+        <!-- ── STUDENT ACTIVITY PAGE ── -->
+        <div class="page" id="student-page-activity">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Recent Activity</span></div>
+            <div class="card-body" id="student-activity"></div>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
-</div>
+  </div><!-- /layout -->
+</div><!-- /student-app -->
 
 <!-- ── MODAL ── -->
 <div id="modal" onclick="closeModal(event)">
@@ -729,6 +750,230 @@ class LinkedList {
 }
 
 /* ═══════════════════════════════════════════════════
+   SUPABASE DATABASE FUNCTIONS
+═══════════════════════════════════════════════════ */
+
+// Database table names
+const TABLES = {
+  users: 'users',
+  students: 'students',
+  topics: 'topics',
+  activities: 'activities'
+};
+
+// Initialize database tables (run once)
+async function initializeDatabase() {
+  try {
+    // Create users table if it doesn't exist
+    const { error: usersError } = await supabase.rpc('create_users_table_if_not_exists');
+    if (usersError && !usersError.message.includes('already exists')) {
+      console.error('Error creating users table:', usersError);
+    }
+
+    // Create students table if it doesn't exist
+    const { error: studentsError } = await supabase.rpc('create_students_table_if_not_exists');
+    if (studentsError && !studentsError.message.includes('already exists')) {
+      console.error('Error creating students table:', studentsError);
+    }
+
+    // Create topics table if it doesn't exist
+    const { error: topicsError } = await supabase.rpc('create_topics_table_if_not_exists');
+    if (topicsError && !topicsError.message.includes('already exists')) {
+      console.error('Error creating topics table:', topicsError);
+    }
+
+    // Create activities table if it doesn't exist
+    const { error: activitiesError } = await supabase.rpc('create_activities_table_if_not_exists');
+    if (activitiesError && !activitiesError.message.includes('already exists')) {
+      console.error('Error creating activities table:', activitiesError);
+    }
+
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+}
+
+// User management functions
+async function saveUser(userData) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.users)
+      .upsert(userData, { onConflict: 'username' });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return null;
+  }
+}
+
+async function getUser(username) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.users)
+      .select('*')
+      .eq('username', username)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    return data;
+  } catch (error) {
+    console.error('Error getting user:', error);
+    return null;
+  }
+}
+
+async function getAllUsers() {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.users)
+      .select('*');
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    return [];
+  }
+}
+
+// Student management functions
+async function saveStudent(studentData) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.students)
+      .upsert(studentData, { onConflict: 'id' });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving student:', error);
+    return null;
+  }
+}
+
+async function getAllStudents() {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.students)
+      .select('*');
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all students:', error);
+    return [];
+  }
+}
+
+async function updateStudent(id, updates) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.students)
+      .update(updates)
+      .eq('id', id);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating student:', error);
+    return null;
+  }
+}
+
+async function deleteStudent(id) {
+  try {
+    const { error } = await supabase
+      .from(TABLES.students)
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    return false;
+  }
+}
+
+// Topic management functions
+async function saveTopic(topicData) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.topics)
+      .upsert(topicData, { onConflict: 'id' });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving topic:', error);
+    return null;
+  }
+}
+
+async function getAllTopics() {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.topics)
+      .select('*');
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all topics:', error);
+    return [];
+  }
+}
+
+async function updateTopic(id, updates) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.topics)
+      .update(updates)
+      .eq('id', id);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating topic:', error);
+    return null;
+  }
+}
+
+async function deleteTopic(id) {
+  try {
+    const { error } = await supabase
+      .from(TABLES.topics)
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting topic:', error);
+    return false;
+  }
+}
+
+// Activity management functions
+async function saveActivity(activityData) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.activities)
+      .insert(activityData);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving activity:', error);
+    return null;
+  }
+}
+
+async function getAllActivities() {
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.activities)
+      .select('*')
+      .order('timestamp', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all activities:', error);
+    return [];
+  }
+}
+
+/* ═══════════════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════════════ */
 const AVATAR_COLORS = ['#B5D4F4','#9FE1CB','#F5C4B3','#C0DD97','#F4C0D1','#CECBF6','#FAC775','#D3D1C7'];
@@ -736,8 +981,8 @@ const AVATAR_BG     = ['#185FA5','#0F6E56','#993C1D','#3B6D11','#993556','#534AB
 
 const DIFF_COLOR = { easy: '#34c77b', medium: '#f5a623', hard: '#e85454' };
 const DIFF_CLASS = { easy: 'badge-easy', medium: 'badge-med', hard: 'badge-hard' };
-const STATUS_CLASS = { active: 'status-active', idle: 'status-idle', offline: 'status-offline' };
-const DOT_CLASS = { active: 'dot-active', idle: 'dot-idle', offline: 'dot-offline' };
+const STATUS_CLASS = { online: 'status-active', offline: 'status-offline' };
+const DOT_CLASS = { online: 'dot-active', offline: 'dot-offline' };
 
 /* ═══════════════════════════════════════════════════
    STATE — ALL COLLECTIONS ARE LINKED LISTS
@@ -756,35 +1001,35 @@ const state = {
 
 /* Seed data */
 const SEED_STUDENTS = [
-  {id:1,name:'Aanya Singh',  avatar:'AS',color:0,topicsDone:14,score:920,streak:12,status:'active', topics:['Arrays','Linked Lists','Stacks','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','DFS','DP Basics','Recursion','Hashing'], loginHistory:[]},
-  {id:2,name:'Rahul Mehta',  avatar:'RM',color:1,topicsDone:11,score:845,streak:8, status:'active', topics:['Arrays','Linked Lists','Stacks','Trees','BST','Sorting','Searching','Graphs','BFS','Recursion','Hashing'], loginHistory:[]},
-  {id:3,name:'Priya Patel',  avatar:'PP',color:2,topicsDone:9, score:710,streak:5, status:'idle',   topics:['Arrays','Linked Lists','Stacks','Trees','BST','Sorting','Searching','Recursion','Hashing'], loginHistory:[]},
-  {id:4,name:'Dev Sharma',   avatar:'DS',color:3,topicsDone:16,score:980,streak:21,status:'active', topics:['Arrays','Linked Lists','Stacks','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','DFS','DP Basics','DP Advanced','Recursion','Hashing','Tries'], loginHistory:[]},
-  {id:5,name:'Kavya Reddy',  avatar:'KR',color:4,topicsDone:7, score:540,streak:2, status:'idle',   topics:['Arrays','Linked Lists','Stacks','Trees','BST','Sorting','Recursion'], loginHistory:[]},
-  {id:6,name:'Arjun Nair',   avatar:'AN',color:5,topicsDone:3, score:210,streak:0, status:'offline',topics:['Arrays','Linked Lists','Stacks'], loginHistory:[]},
-  {id:7,name:'Sneha Iyer',   avatar:'SI',color:6,topicsDone:12,score:870,streak:9, status:'active', topics:['Arrays','Linked Lists','Stacks','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','Recursion','Hashing'], loginHistory:[]},
+  {id:1,name:'Aanya Singh',  avatar:'AS',color:0,topicsDone:14,score:920,streak:0,status:'offline', topics:['Arrays','Linked Lists','Queues','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','DFS','DP Basics','Recursion','Hashing'], loginHistory:[]},
+  {id:2,name:'Rahul Mehta',  avatar:'RM',color:1,topicsDone:11,score:845,streak:0, status:'offline', topics:['Arrays','Linked Lists','Queues','Trees','BST','Sorting','Searching','Graphs','BFS','Recursion','Hashing'], loginHistory:[]},
+  {id:3,name:'Priya Patel',  avatar:'PP',color:2,topicsDone:9, score:710,streak:0, status:'offline',   topics:['Arrays','Linked Lists','Queues','Trees','BST','Sorting','Searching','Recursion','Hashing'], loginHistory:[]},
+  {id:4,name:'Dev Sharma',   avatar:'DS',color:3,topicsDone:16,score:980,streak:0,status:'offline', topics:['Arrays','Linked Lists','Queues','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','DFS','DP Basics','DP Advanced','Recursion','Hashing','Tries'], loginHistory:[]},
+  {id:5,name:'Kavya Reddy',  avatar:'KR',color:4,topicsDone:7, score:540,streak:0, status:'offline',   topics:['Arrays','Linked Lists','Queues','Trees','BST','Sorting','Recursion'], loginHistory:[]},
+  {id:6,name:'Arjun Nair',   avatar:'AN',color:5,topicsDone:3, score:210,streak:0, status:'offline',topics:['Arrays','Linked Lists','Queues'], loginHistory:[]},
+  {id:7,name:'Sneha Iyer',   avatar:'SI',color:6,topicsDone:12,score:870,streak:0, status:'offline', topics:['Arrays','Linked Lists','Queues','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','Recursion','Hashing'], loginHistory:[]},
   {id:8,name:'Vikram Das',   avatar:'VD',color:7,topicsDone:2, score:120,streak:0, status:'offline',topics:['Arrays','Linked Lists'], loginHistory:[]},
-  {id:9,name:'Meera Joshi',  avatar:'MJ',color:0,topicsDone:5, score:380,streak:1, status:'idle',   topics:['Arrays','Linked Lists','Stacks','Trees','Sorting'], loginHistory:[]},
-  {id:10,name:'Rohan Gupta', avatar:'RG',color:1,topicsDone:13,score:895,streak:15,status:'active', topics:['Arrays','Linked Lists','Stacks','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','Recursion','Hashing','DP Basics'], loginHistory:[]},
+  {id:9,name:'Meera Joshi',  avatar:'MJ',color:0,topicsDone:5, score:380,streak:0, status:'offline',   topics:['Arrays','Linked Lists','Queues','Trees','Sorting'], loginHistory:[]},
+  {id:10,name:'Rohan Gupta', avatar:'RG',color:1,topicsDone:13,score:895,streak:0,status:'offline', topics:['Arrays','Linked Lists','Queues','Trees','BST','Heaps','Sorting','Searching','Graphs','BFS','Recursion','Hashing','DP Basics'], loginHistory:[]},
 ];
 
 const SEED_TOPICS = [
-  {id:1, name:'Arrays',      cat:'Linear',       diff:'easy',   problems:25},
-  {id:2, name:'Linked Lists',cat:'Linear',       diff:'easy',   problems:20},
-  {id:3, name:'Stacks',      cat:'Linear',       diff:'easy',   problems:15},
-  {id:4, name:'Trees',       cat:'Non-Linear',   diff:'medium', problems:30},
-  {id:5, name:'BST',         cat:'Non-Linear',   diff:'medium', problems:22},
-  {id:6, name:'Heaps',       cat:'Non-Linear',   diff:'medium', problems:18},
-  {id:7, name:'Sorting',     cat:'Algorithms',   diff:'easy',   problems:20},
-  {id:8, name:'Searching',   cat:'Algorithms',   diff:'easy',   problems:12},
-  {id:9, name:'Graphs',      cat:'Non-Linear',   diff:'hard',   problems:35},
-  {id:10,name:'BFS',         cat:'Graph Algo',   diff:'hard',   problems:15},
-  {id:11,name:'DFS',         cat:'Graph Algo',   diff:'hard',   problems:15},
-  {id:12,name:'DP Basics',   cat:'Dynamic Prog', diff:'hard',   problems:28},
-  {id:13,name:'DP Advanced', cat:'Dynamic Prog', diff:'hard',   problems:20},
-  {id:14,name:'Recursion',   cat:'Fundamentals', diff:'medium', problems:18},
-  {id:15,name:'Hashing',     cat:'Data Struct',  diff:'medium', problems:16},
-  {id:16,name:'Tries',       cat:'Data Struct',  diff:'hard',   problems:10},
+  {id:1, name:'Arrays',      cat:'Linear',       diff:'easy',   problems:25, tasks: ['Solve 5 Array problems', 'Implement Dynamic Array']},
+  {id:2, name:'Linked Lists',cat:'Linear',       diff:'easy',   problems:20, tasks: ['Solve 5 LL problems', 'Reverse a Linked List']},
+  {id:3, name:'Queues',      cat:'Linear',       diff:'easy',   problems:15, tasks: ['Solve 5 Queue problems', 'Implement Queue using Stacks']},
+  {id:4, name:'Trees',       cat:'Non-Linear',   diff:'medium', problems:30, tasks: ['Solve 5 Tree problems']},
+  {id:5, name:'BST',         cat:'Non-Linear',   diff:'medium', problems:22, tasks: ['Solve 5 BST problems']},
+  {id:6, name:'Heaps',       cat:'Non-Linear',   diff:'medium', problems:18, tasks: ['Solve 5 Heap problems']},
+  {id:7, name:'Sorting',     cat:'Algorithms',   diff:'easy',   problems:20, tasks: ['Implement QuickSort']},
+  {id:8, name:'Searching',   cat:'Algorithms',   diff:'easy',   problems:12, tasks: ['Binary Search implementation']},
+  {id:9, name:'Graphs',      cat:'Non-Linear',   diff:'hard',   problems:35, tasks: ['Solve 5 Graph problems']},
+  {id:10,name:'BFS',         cat:'Graph Algo',   diff:'hard',   problems:15, tasks: ['BFS Traversal']},
+  {id:11,name:'DFS',         cat:'Graph Algo',   diff:'hard',   problems:15, tasks: ['DFS Traversal']},
+  {id:12,name:'DP Basics',   cat:'Dynamic Prog', diff:'hard',   problems:28, tasks: ['Knapsack Problem']},
+  {id:13,name:'DP Advanced', cat:'Dynamic Prog', diff:'hard',   problems:20, tasks: ['Matrix Chain Multiplication']},
+  {id:14,name:'Recursion',   cat:'Fundamentals', diff:'medium', problems:18, tasks: ['Tower of Hanoi']},
+  {id:15,name:'Hashing',     cat:'Data Struct',  diff:'medium', problems:16, tasks: ['Implement Hash Map']},
+  {id:16,name:'Tries',       cat:'Data Struct',  diff:'hard',   problems:10, tasks: ['Prefix Tree Implementation']},
 ];
 
 /* ═══════════════════════════════════════════════════
@@ -798,6 +1043,12 @@ const STORAGE = {
   students: 'dsaStudents',
   topics: 'dsaTopics',
 };
+
+// Supabase Configuration
+const SUPABASE_URL = 'https://msjgwgffrxyzmducmemt.supabase.co'; // Replace with your Supabase URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zamd3Z2Zmcnh5em1kdWNtZW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MDYzMTMsImV4cCI6MjA5MjE4MjMxM30.OwMszZVSjg5ZjZeOxwArcyqC-8__vBCyAIWTuzRUjhs'; // Replace with your Supabase anon key
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let isLoginMode = true;
 let loginRole = 'admin';
 let currentRole = null;
@@ -879,6 +1130,72 @@ class UserNode {
 class UserList {
   constructor() {
     this.head = null;
+    this.loaded = false;
+  }
+
+  async loadFromSupabase() {
+    if (this.loaded) return;
+    try {
+      const usersData = await getAllUsers();
+      this.head = null; // Reset list
+      usersData.forEach(userData => {
+        this.addUser(userData.username, userData.password, userData.role, userData.studentId);
+      });
+      this.loaded = true;
+    } catch (error) {
+      console.error('Error loading users from Supabase:', error);
+      // Fallback to localStorage
+      this.loadFromLocalStorage();
+    }
+  }
+
+  loadFromLocalStorage() {
+    const raw = localStorage.getItem(STORAGE.users);
+    const users = raw ? JSON.parse(raw) : SEED_USERS;
+    users.forEach(u => this.addUser(u.username, u.password, u.role, u.studentId || null));
+  }
+
+  async saveToSupabase() {
+    try {
+      const usersArray = this.toArray();
+      for (const userData of usersArray) {
+        await saveUser(userData);
+      }
+    } catch (error) {
+      console.error('Error saving users to Supabase:', error);
+      // Fallback to localStorage
+      this.saveToLocalStorage();
+    }
+  }
+
+  saveToLocalStorage() {
+    const users = [];
+    let current = this.head;
+    while (current) {
+      users.push({
+        username: current.username,
+        password: current.password,
+        role: current.role,
+        studentId: current.studentId
+      });
+      current = current.next;
+    }
+    localStorage.setItem(STORAGE.users, JSON.stringify(users));
+  }
+
+  toArray() {
+    const users = [];
+    let current = this.head;
+    while (current) {
+      users.push({
+        username: current.username,
+        password: current.password,
+        role: current.role,
+        studentId: current.studentId
+      });
+      current = current.next;
+    }
+    return users;
   }
 
   addUser(username, password, role = 'student', studentId = null) {
@@ -927,14 +1244,21 @@ class UserList {
 function handleAuth() { isLoginMode ? handleLogin() : handleSignUp(); }
 
 const user = new UserList();
-loadData();
-loadUsers();
+
+// Initialize app data
+async function initializeApp() {
+  await loadData();
+  await loadUsers();
+}
+
+// Call initialization
+initializeApp();
 
 function normalizeStudentUsername(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
-function generateStudentUsersFromList() {
+async function generateStudentUsersFromList() {
   let created = false;
   let dirtyStudents = false;
   let current = state.students.head;
@@ -965,11 +1289,11 @@ function generateStudentUsersFromList() {
     }
     current = current.next;
   }
-  if (dirtyStudents) saveData();
+  if (dirtyStudents) await saveData();
   return created;
 }
 
-function handleLogin() {
+async function handleLogin() {
   const username = document.getElementById('login-ID').value.trim();
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('login-error');
@@ -984,12 +1308,28 @@ function handleLogin() {
     if (currentRole === 'student') {
       const student = state.students.findById(found.studentId);
       if (student) {
+        const now = Date.now();
+        const todayStr = new Date(now).toDateString();
         if (!student.loginHistory) student.loginHistory = [];
-        student.loginHistory.push(Date.now());
-        saveData();
+
+        const lastLoginStr = student.loginHistory.length ? new Date(student.loginHistory[student.loginHistory.length - 1]).toDateString() : '';
+
+        if (todayStr !== lastLoginStr) {
+          student.loginHistory.push(now);
+          // Log activity
+          await saveActivity({
+            type: 'login',
+            description: `${student.name} logged in`,
+            studentId: student.id,
+            timestamp: now
+          });
+        }
+        student.streak = calculateStreak(student.loginHistory);
+        student.status = 'online';
+        await saveData();
       }
     }
-    showApp();
+    await showApp();
   } else {
     err.textContent = 'Invalid username or password.';
     err.style.display = 'block';
@@ -999,7 +1339,7 @@ function handleLogin() {
   }
 }
 
-function handleSignUp() {
+async function handleSignUp() {
   const name = document.getElementById('login-name').value.trim();
   const username = document.getElementById('login-ID').value.trim();
   const pass = document.getElementById('login-pass').value;
@@ -1027,72 +1367,141 @@ function handleSignUp() {
     color: Math.floor(Math.random() * AVATAR_COLORS.length),
     topicsDone: 0,
     score: 0,
-    streak: 0,
-    status: 'active',
+    streak: 1,
+    status: 'online',
     topics: [],
-    loginHistory: []
+    loginHistory: [Date.now()]
   });
 
   user.addUser(username, pass, 'student', studentId);
-  saveUsers();
-  saveData();
+  await saveUsers();
+  await saveData();
 
   currentRole = 'student';
   currentUsername = username;
   localStorage.setItem(STORAGE.auth, 'true');
   localStorage.setItem(STORAGE.role, currentRole);
   localStorage.setItem(STORAGE.username, currentUsername);
-  showApp();
+  await showApp();
 }
 
-function handleLogout() {
+async function handleLogout() {
+  if (currentRole === 'student') {
+    const student = getLoggedInStudent();
+    if (student) {
+      student.status = 'offline';
+      await saveData();
+    }
+  }
   localStorage.removeItem(STORAGE.auth);
   localStorage.removeItem(STORAGE.role);
   localStorage.removeItem(STORAGE.username);
   location.reload();
 }
 
-function saveUsers() {
-  const users = [];
-  let current = user.head;
-  while (current) {
-    users.push({ username: current.username, password: current.password, role: current.role, studentId: current.studentId });
-    current = current.next;
+async function saveUsers() {
+  await user.saveToSupabase();
+}
+
+async function loadUsers() {
+  await user.loadFromSupabase();
+  const newStudentsCreated = await generateStudentUsersFromList();
+  if (newStudentsCreated) await saveUsers();
+}
+
+async function saveData() {
+  try {
+    // Save students
+    const studentsArray = state.students.toArray();
+    for (const student of studentsArray) {
+      await saveStudent(student);
+    }
+
+    // Save topics
+    const topicsArray = state.topics.toArray();
+    for (const topic of topicsArray) {
+      await saveTopic(topic);
+    }
+
+    console.log('Data saved to Supabase successfully');
+  } catch (error) {
+    console.error('Error saving data to Supabase:', error);
+    // Fallback to localStorage if Supabase fails
+    localStorage.setItem(STORAGE.students, JSON.stringify(state.students.toArray()));
+    localStorage.setItem(STORAGE.topics, JSON.stringify(state.topics.toArray()));
   }
-  localStorage.setItem(STORAGE.users, JSON.stringify(users));
 }
 
-function loadUsers() {
-  const raw = localStorage.getItem(STORAGE.users);
-  const users = raw ? JSON.parse(raw) : SEED_USERS;
-  users.forEach(u => user.addUser(u.username, u.password, u.role, u.studentId || null));
-  const newStudentsCreated = generateStudentUsersFromList();
-  if (newStudentsCreated) saveUsers();
-}
+async function loadData() {
+  try {
+    // Initialize database tables
+    await initializeDatabase();
 
-function saveData() {
-  localStorage.setItem(STORAGE.students, JSON.stringify(state.students.toArray()));
-  localStorage.setItem(STORAGE.topics, JSON.stringify(state.topics.toArray()));
-}
+    // Load students
+    const studentsData = await getAllStudents();
+    state.students = new LinkedList();
+    if (studentsData.length > 0) {
+      studentsData.forEach(s => {
+        s.streak = calculateStreak(s.loginHistory || []);
+        state.students.append(s);
+      });
+    } else {
+      // Load seed data if no data in Supabase
+      SEED_STUDENTS.forEach(s => {
+        s.streak = calculateStreak(s.loginHistory);
+        state.students.append(s);
+        saveStudent(s); // Save to Supabase
+      });
+    }
 
-function loadData() {
-  const storedStudents = localStorage.getItem(STORAGE.students);
-  const storedTopics = localStorage.getItem(STORAGE.topics);
+    // Load topics
+    const topicsData = await getAllTopics();
+    state.topics = new LinkedList();
+    if (topicsData.length > 0) {
+      topicsData.forEach(t => state.topics.append(t));
+    } else {
+      // Load seed data if no data in Supabase
+      SEED_TOPICS.forEach(t => {
+        state.topics.append(t);
+        saveTopic(t); // Save to Supabase
+      });
+    }
 
-  state.students = new LinkedList();
-  state.topics = new LinkedList();
-  state.activities = new LinkedList();
+    // Load activities
+    const activitiesData = await getAllActivities();
+    state.activities = new LinkedList();
+    activitiesData.forEach(a => state.activities.append(a));
 
-  if (storedStudents) {
-    JSON.parse(storedStudents).forEach(s => state.students.append(s));
-  } else {
-    SEED_STUDENTS.forEach(s => state.students.append(s));
-  }
+    syncAllStudentTasks();
+    console.log('Data loaded from Supabase successfully');
+  } catch (error) {
+    console.error('Error loading data from Supabase:', error);
+    // Fallback to localStorage if Supabase fails
+    const storedStudents = localStorage.getItem(STORAGE.students);
+    const storedTopics = localStorage.getItem(STORAGE.topics);
 
-  if (storedTopics) {
-    JSON.parse(storedTopics).forEach(t => state.topics.append(t));
-  } else {
-    SEED_TOPICS.forEach(t => state.topics.append(t));
+    state.students = new LinkedList();
+    state.topics = new LinkedList();
+    state.activities = new LinkedList();
+
+    if (storedStudents) {
+      JSON.parse(storedStudents).forEach(s => {
+        s.streak = calculateStreak(s.loginHistory);
+        state.students.append(s);
+      });
+    } else {
+      SEED_STUDENTS.forEach(s => {
+        s.streak = calculateStreak(s.loginHistory);
+        state.students.append(s);
+      });
+    }
+
+    if (storedTopics) {
+      JSON.parse(storedTopics).forEach(t => state.topics.append(t));
+    } else {
+      SEED_TOPICS.forEach(t => state.topics.append(t));
+    }
+    syncAllStudentTasks();
   }
 }
 
@@ -1102,12 +1511,18 @@ function getLoggedInStudent() {
   return state.students.findById(userEntry.studentId);
 }
 
-function showApp() {
+async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
-  loadData();
-  generateActivities();
+  await loadData();
+  await loadUsers();
+  await generateActivities();
 
   if (currentRole === 'student') {
+    const student = getLoggedInStudent();
+    if (student) {
+      student.status = 'online';
+      await saveData();
+    }
     showStudentApp();
   } else {
     showAdminApp();
@@ -1123,6 +1538,18 @@ function showAdminApp() {
 function showStudentApp() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('student-app').style.display = 'block';
+  
+  // Reset student navigation to dashboard
+  document.querySelectorAll('#student-app .nav-item').forEach(n => n.classList.remove('active'));
+  const firstNavItem = document.querySelector('#student-app .nav-item');
+  if (firstNavItem) firstNavItem.classList.add('active');
+  
+  document.querySelectorAll('#student-app .page').forEach(p => p.classList.remove('active'));
+  const dashboardPage = document.getElementById('student-page-dashboard');
+  if (dashboardPage) dashboardPage.classList.add('active');
+  
+  document.getElementById('student-topbar-title').textContent = 'Dashboard';
+  
   renderStudentDashboard();
 }
 
@@ -1135,12 +1562,27 @@ function renderAdminViews() {
   renderHeatmap();
 }
 
+function navigateStudent(page, el) {
+  document.querySelectorAll('#student-app .nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#student-app .page').forEach(p => p.classList.remove('active'));
+  document.getElementById('student-page-' + page).classList.add('active');
+  const titles = { dashboard:'Dashboard', courses:'My Courses', tasks:'Daily Tasks', activity:'My Activity' };
+  document.getElementById('student-topbar-title').textContent = titles[page];
+
+  if (page === 'dashboard') renderStudentDashboard();
+  if (page === 'courses') renderStudentCourses();
+  if (page === 'tasks') renderStudentTasks();
+  if (page === 'activity') renderStudentDashboard(); 
+}
+
 function renderStudentDashboard() {
   const student = getLoggedInStudent();
   if (!student) return;
   document.getElementById('student-welcome').textContent = `Welcome back, ${student.name}`;
 
-  const completion = Math.round(student.topicsDone / state.topics.size * 100) || 0;
+  const totalCurriculum = state.topics.size;
+  const completion = totalCurriculum > 0 ? Math.min(100, Math.round(student.topicsDone / totalCurriculum * 100)) : 0;
   document.getElementById('student-metrics').innerHTML = `
     <div class="metric-card">
       <div class="metric-label">Topics Done</div>
@@ -1198,7 +1640,7 @@ function renderStudentCourses() {
     const isStarted = student.startedTopics && student.startedTopics.includes(topic.name);
     const buttonText = isCompleted ? 'Completed' : isStarted ? 'Continue' : 'Start';
     const buttonClass = isCompleted ? 'btn-success' : 'btn-primary';
-    const buttonAction = isCompleted ? '' : `onclick="startTopic('${topic.name}')`;
+    const buttonAction = isCompleted ? '' : `onclick="startTopic('${topic.name}')"`;
     return `
       <div class="course-item">
         <div class="course-info">
@@ -1231,24 +1673,16 @@ function renderStudentTasks() {
 function generateStudentTasks(student) {
   const tasks = [];
   let taskId = 1;
+  // Use the tasks defined in each topic
   state.topics.forEach(topic => {
-    tasks.push({
-      id: taskId++,
-      topic: topic.name,
-      description: `Solve 5 problems in ${topic.name}`,
-      completed: false
-    });
-    tasks.push({
-      id: taskId++,
-      topic: topic.name,
-      description: `Watch tutorial video for ${topic.name}`,
-      completed: false
-    });
-    tasks.push({
-      id: taskId++,
-      topic: topic.name,
-      description: `Complete practice quiz for ${topic.name}`,
-      completed: false
+    const topicTasks = topic.tasks || [`Solve 5 problems in ${topic.name}`];
+    topicTasks.forEach(desc => {
+      tasks.push({
+        id: taskId++,
+        topic: topic.name,
+        description: desc,
+        completed: false
+      });
     });
   });
   student.tasks = tasks;
@@ -1268,7 +1702,7 @@ function startTopic(topicName) {
   // For now, just mark as started. Could open a modal or something.
 }
 
-function toggleTask(taskId) {
+async function toggleTask(taskId) {
   const student = getLoggedInStudent();
   if (!student || !student.tasks) return;
   const task = student.tasks.find(t => t.id === taskId);
@@ -1283,9 +1717,24 @@ function toggleTask(taskId) {
         student.topics.push(task.topic);
         student.topicsDone += 1;
         student.score += 50; // Bonus for completing topic
+        // Log topic completion activity
+        await saveActivity({
+          type: 'completed',
+          description: `${student.name} completed topic: ${task.topic}`,
+          studentId: student.id,
+          timestamp: Date.now()
+        });
+      } else {
+        // Log task completion activity
+        await saveActivity({
+          type: 'solved',
+          description: `${student.name} completed task: ${task.title}`,
+          studentId: student.id,
+          timestamp: Date.now()
+        });
       }
     }
-    saveData();
+    await saveData();
     renderStudentDashboard(); // Re-render to update metrics
   }
 }
@@ -1370,28 +1819,60 @@ function topicCompletion(topicName) {
   return Math.round((count / total) * 100);
 }
 
+function calculateStreak(history) {
+  if (!history || history.length === 0) return 0;
+  
+  const uniqueDates = [...new Set(history.map(t => new Date(t).toDateString()))]
+    .map(d => new Date(d).getTime())
+    .sort((a, b) => b - a);
+    
+  const today = new Date(new Date().toDateString()).getTime();
+  if (uniqueDates[0] < today - 86400000) return 0;
+  
+  let streak = 0;
+  let expected = uniqueDates[0];
+  for (let date of uniqueDates) {
+    if (date === expected) { streak++; expected -= 86400000; }
+    else break;
+  }
+  return streak;
+}
+
 function avatarEl(s, size = 32) {
   const fs = size <= 28 ? 10 : 12;
   return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${fs}px;background:${AVATAR_COLORS[s.color]};color:${AVATAR_BG[s.color]};">${s.avatar}</div>`;
 }
 
+function getTimeAgo(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
 /* ═══════════════════════════════════════════════════
    GENERATE ACTIVITIES (stored in linked list)
 ═══════════════════════════════════════════════════ */
-function generateActivities() {
+async function generateActivities() {
+  if (state.activities.size > 0) return; // Prevent "randomizing" on every refresh
   const types = ['solved','solved','solved','completed','started'];
   const topicsArr = state.topics.toArray();
-  state.students.forEach(s => {
+  state.students.forEach(async (s) => {
     const count = Math.floor(Math.random() * 5 + 2);
     for (let i = 0; i < count; i++) {
-      state.activities.append({
-        student: s.name,
-        avatar:  s.avatar,
-        color:   s.color,
-        type:    types[Math.floor(Math.random() * types.length)],
-        topic:   topicsArr[Math.floor(Math.random() * topicsArr.length)].name,
-        time:    Math.floor(Math.random() * 1440),
-      });
+      const activityData = {
+        type: types[Math.floor(Math.random() * types.length)],
+        description: `${s.name} ${types[Math.floor(Math.random() * types.length)]} ${topicsArr[Math.floor(Math.random() * topicsArr.length)].name}`,
+        studentId: s.id,
+        timestamp: Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000), // Random time in last 7 days
+      };
+      state.activities.append(activityData);
+      await saveActivity(activityData);
     }
   });
 }
@@ -1465,7 +1946,8 @@ function renderDashboard() {
   document.getElementById('m-students').textContent = students.size;
   document.getElementById('m-topics').textContent   = state.topics.size;
 
-  const totalComp = students.reduce((acc, s) => acc + (s.topicsDone / state.topics.size * 100), 0);
+  const totalCurriculum = state.topics.size;
+  const totalComp = students.reduce((acc, s) => acc + (totalCurriculum > 0 ? Math.min(100, (s.topicsDone / totalCurriculum * 100)) : 0), 0);
   const avgComp = students.size ? Math.round(totalComp / students.size) : 0;
   document.getElementById('m-completion').textContent = avgComp + '%';
 
@@ -1510,9 +1992,10 @@ function renderStudents() {
     : state.students.toArray();
 
   document.getElementById('students-tbody').innerHTML = filtered.map(s => {
-    const pct  = Math.round(s.topicsDone / state.topics.size * 100);
+    const totalCurriculum = state.topics.size;
+    const pct = totalCurriculum > 0 ? Math.min(100, Math.round(s.topicsDone / totalCurriculum * 100)) : 0;
     const bars = Array.from({ length: 10 }, (_, i) => {
-      const filled = i < Math.round(s.topicsDone / state.topics.size * 10);
+      const filled = totalCurriculum > 0 && i < Math.round(s.topicsDone / totalCurriculum * 10);
       return `<div class="mini-block" style="background:${filled ? 'var(--accent)' : 'var(--bg4)'}"></div>`;
     }).join('');
     return `<tr>
@@ -1536,20 +2019,21 @@ function renderStudents() {
 function renderTopics() {
   document.getElementById('topics-tbody').innerHTML = state.topics.toArray().map(t => {
     const pct = topicCompletion(t.name);
-    let count = 0;
-    state.students.forEach(s => { if (s.topics.includes(t.name)) count++; });
+    const taskCount = (t.tasks || []).length;
     return `<tr>
       <td style="font-weight:600;">${t.name}</td>
       <td style="color:var(--text2);">${t.cat}</td>
       <td><span class="badge ${DIFF_CLASS[t.diff]}">${t.diff}</span></td>
-      <td style="font-family:var(--mono);">${t.problems}</td>
+      <td style="font-family:var(--mono);">${taskCount} tasks</td>
       <td>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="prog-bar" style="width:80px;"><div class="prog-fill" style="width:${pct}%;background:var(--accent);"></div></div>
           <span style="font-size:12px;font-family:var(--mono);">${pct}%</span>
         </div>
       </td>
-      <td style="font-family:var(--mono);">${count}</td>
+      <td>
+        <button class="btn-sm danger" onclick="deleteTopic(${t.id})">Remove</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1566,16 +2050,18 @@ function renderActivity() {
     : state.activities.filter(a => a.type === filter).toArray();
 
   document.getElementById('activity-log').innerHTML = items.slice(0, 30).map(a => {
-    const t = a.time < 60 ? `${a.time}m` : `${Math.round(a.time/60)}h`;
+    const timeAgo = getTimeAgo(a.timestamp);
+    const student = state.students.findById(a.studentId);
+    if (!student) return '';
+
     return `<div class="activity-item">
-      ${avatarEl(a)}
+      ${avatarEl(student)}
       <div class="activity-info">
-        <strong>${a.student}</strong>
-        <span style="color:var(--text2);"> ${a.type} a problem in </span>
-        <strong>${a.topic}</strong>
+        <strong>${student.name}</strong>
+        <span style="color:var(--text2);"> ${a.description.replace(student.name + ' ', '')}</span>
       </div>
-      <span class="activity-type" style="background:${TYPE_COLOR[a.type]}18;color:${TYPE_COLOR[a.type]};">${a.type}</span>
-      <span class="activity-time">${t} ago</span>
+      <span class="activity-type" style="background:${TYPE_COLOR[a.type] || 'var(--accent)'}18;color:${TYPE_COLOR[a.type] || 'var(--accent)'};">${a.type}</span>
+      <span class="activity-time">${timeAgo}</span>
     </div>`;
   }).join('');
 }
@@ -1644,6 +2130,7 @@ function navigate(page, el) {
   } else if (page === 'topics') {
     addBtn.textContent = '+ Add Topic'; addBtn.onclick = openAddTopicModal;
     searchWrap.style.display = 'none';
+    renderTopics();
   } else if (page === 'passwords') {
     addBtn.textContent = ''; addBtn.onclick = null;
     searchWrap.style.display = 'none';
@@ -1671,7 +2158,16 @@ function filterActivity(v, btn) {
   renderActivity();
 }
 
-function handleSearch(q) { state.searchQuery = q; renderStudents(); }
+function debounce(func, timeout = 300) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { func.apply(this, args); }, timeout);
+  };
+}
+
+const debouncedRenderStudents = debounce(() => renderStudents());
+function handleSearch(q) { state.searchQuery = q; debouncedRenderStudents(); }
 
 /* ═══════════════════════════════════════════════════
    MODALS
@@ -1684,7 +2180,7 @@ function openAddModal() {
     <div class="form-row"><label class="form-label">Student Password</label><input class="form-input" id="f-password" type="password" placeholder="Set login password"></div>
     <div class="form-row"><label class="form-label">Status</label>
       <select class="form-input" id="f-status">
-        <option>active</option><option>idle</option><option>offline</option>
+        <option>online</option><option>offline</option>
       </select>
     </div>`;
   document.getElementById('modal').style.display = 'flex';
@@ -1702,7 +2198,8 @@ function openAddTopicModal() {
         <option>easy</option><option>medium</option><option>hard</option>
       </select>
     </div>
-    <div class="form-row"><label class="form-label">Number of Problems</label><input class="form-input" id="f-tprob" type="number" value="10" min="1"></div>`;
+    <div class="form-row"><label class="form-label">Initial Tasks</label>
+    <textarea class="form-input" id="f-ttasks" style="height:80px;resize:none;" placeholder="One task per line..."></textarea></div>`;
   document.getElementById('modal').style.display = 'flex';
   document.getElementById('f-tname').focus();
 }
@@ -1720,12 +2217,19 @@ function editStudent(id) {
     <div class="form-row"><label class="form-label">Streak (days)</label><input class="form-input" id="f-streak" type="number" value="${s.streak}" min="0"></div>
     <div class="form-row"><label class="form-label">Status</label>
       <select class="form-input" id="f-status">
-        <option ${s.status==='active'?'selected':''}>active</option>
-        <option ${s.status==='idle'?'selected':''}>idle</option>
+        <option ${s.status==='online'?'selected':''}>online</option>
         <option ${s.status==='offline'?'selected':''}>offline</option>
       </select>
     </div>`;
   document.getElementById('modal').style.display = 'flex';
+}
+
+function deleteTopic(id) {
+  if (!confirm('Remove this course/topic? Associated student progress for this topic will be removed.')) return;
+  state.topics.removeById(id);
+  syncAllStudentTasks();
+  renderTopics();
+  renderDashboard();
 }
 
 function deleteStudent(id) {
@@ -1737,7 +2241,35 @@ function deleteStudent(id) {
   renderAlerts();
 }
 
-function saveModal() {
+async function syncAllStudentTasks() {
+  const currentTopics = state.topics.toArray();
+  const topicNames = currentTopics.map(t => t.name);
+
+  state.students.forEach(student => {
+    if (!student.tasks) student.tasks = [];
+    
+    // 1. Remove tasks for deleted topics
+    student.tasks = student.tasks.filter(task => topicNames.includes(task.topic));
+    
+    // Sync completed topics list and topicsDone count with current curriculum
+    student.topics = (student.topics || []).filter(name => topicNames.includes(name));
+    student.topicsDone = student.topics.length;
+    
+    // 2. Add missing tasks from topics
+    let maxId = student.tasks.reduce((max, t) => Math.max(max, t.id), 0);
+    currentTopics.forEach(topic => {
+      (topic.tasks || []).forEach(desc => {
+        const exists = student.tasks.some(t => t.topic === topic.name && t.description === desc);
+        if (!exists) {
+          student.tasks.push({ id: ++maxId, topic: topic.name, description: desc, completed: false });
+        }
+      });
+    });
+  });
+  await saveData();
+}
+
+async function saveModal() {
   if (state.modalMode === 'add-student') {
     const name = document.getElementById('f-name').value.trim();
     const password = document.getElementById('f-password').value.trim();
@@ -1783,7 +2315,7 @@ function saveModal() {
       s.password = password;
       const userEntry = user.findByStudentId(s.id);
       if (userEntry) userEntry.password = password;
-      saveUsers();
+      await saveUsers();
     }
     s.score  = parseInt(document.getElementById('f-score').value)  || 0;
     s.streak = parseInt(document.getElementById('f-streak').value) || 0;
@@ -1791,15 +2323,18 @@ function saveModal() {
   } else if (state.modalMode === 'add-topic') {
     const name = document.getElementById('f-tname').value.trim();
     if (!name) { document.getElementById('f-tname').focus(); return; }
+    const tasksRaw = document.getElementById('f-ttasks').value;
+    const tasks = tasksRaw.split('\n').map(t => t.trim()).filter(t => t);
     state.topics.append({
       id: Date.now(), name,
       cat:      document.getElementById('f-tcat').value.trim() || 'General',
       diff:     document.getElementById('f-tdiff').value,
-      problems: parseInt(document.getElementById('f-tprob').value) || 10,
+      tasks:    tasks.length ? tasks : [`Solve 5 problems in ${name}`]
     });
+    await syncAllStudentTasks();
     renderTopics();
   }
-  saveData();
+  await saveData();
   closeModal();
   renderStudents();
   renderDashboard();
