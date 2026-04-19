@@ -371,13 +371,13 @@
     </div>
     <div class="form-group">
       <label class="login-label">Username</label>
-      <input class="login-input" type="text" id="login-ID" placeholder="admin" onkeydown="if(event.key==='Enter')handleAuth().catch(console.error)">
+      <input class="login-input" type="text" id="login-ID" placeholder="admin" onkeydown="if(event.key==='Enter')handleAuth()">
     </div>
     <div class="form-group">
       <label class="login-label">Password</label>
       <input class="login-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleAuth()">
     </div>
-    <button class="login-btn" id="auth-btn" onclick="handleAuth().catch(console.error)">Login</button>
+    <button class="login-btn" id="auth-btn" onclick="handleAuth()">Login</button>
     <div class="auth-footer">
       <span id="toggle-text">Don't have an account?</span>
       <a onclick="toggleAuthMode()" id="auth-toggle"> Create Account</a>
@@ -763,34 +763,9 @@ const TABLES = {
 
 // Initialize database tables (run once)
 async function initializeDatabase() {
-  try {
-    // Create users table if it doesn't exist
-    const { error: usersError } = await supabaseClient.rpc('create_users_table_if_not_exists');
-    if (usersError && !usersError.message.includes('already exists')) {
-      console.error('Error creating users table:', usersError);
-    }
-
-    // Create students table if it doesn't exist
-    const { error: studentsError } = await supabaseClient.rpc('create_students_table_if_not_exists');
-    if (studentsError && !studentsError.message.includes('already exists')) {
-      console.error('Error creating students table:', studentsError);
-    }
-
-    // Create topics table if it doesn't exist
-    const { error: topicsError } = await supabaseClient.rpc('create_topics_table_if_not_exists');
-    if (topicsError && !topicsError.message.includes('already exists')) {
-      console.error('Error creating topics table:', topicsError);
-    }
-
-    // Create activities table if it doesn't exist
-    const { error: activitiesError } = await supabaseClient.rpc('create_activities_table_if_not_exists');
-    if (activitiesError && !activitiesError.message.includes('already exists')) {
-      console.error('Error creating activities table:', activitiesError);
-    }
-
-  } catch (error) {
-    console.error('Database initialization error:', error);
-  }
+  // Tables are now created directly in the schema SQL
+  // This function is kept for compatibility but does nothing
+  console.log('Database tables should be created via supabase-schema.sql');
 }
 
 // User management functions
@@ -818,7 +793,7 @@ async function getUser(username) {
     return data;
   } catch (error) {
     console.error('Error getting user:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -838,8 +813,6 @@ async function getAllUsers() {
 // Student management functions
 async function saveStudent(studentData) {
   try {
-    // Optimized to handle single object or array for bulk saving
-    const isArray = Array.isArray(studentData);
     const { data, error } = await supabaseClient
       .from(TABLES.students)
       .upsert(studentData, { onConflict: 'id' });
@@ -860,7 +833,7 @@ async function getAllStudents() {
     return data || [];
   } catch (error) {
     console.error('Error getting all students:', error);
-    return null; // Return null to indicate error, not empty
+    return [];
   }
 }
 
@@ -915,7 +888,7 @@ async function getAllTopics() {
     return data || [];
   } catch (error) {
     console.error('Error getting all topics:', error);
-    return null; // Return null to indicate error, not empty
+    return [];
   }
 }
 
@@ -971,7 +944,7 @@ async function getAllActivities() {
     return data || [];
   } catch (error) {
     console.error('Error getting all activities:', error);
-    return null; // Return null to indicate error, not empty
+    return [];
   }
 }
 
@@ -1047,8 +1020,8 @@ const STORAGE = {
 };
 
 // Supabase Configuration
-const SUPABASE_URL = 'https://msjgwgffrxyzmducmemt.supabase.co'; // Replace with your actual Supabase URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zamd3Z2Zmcnh5em1kdWNtZW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MDYzMTMsImV4cCI6MjA5MjE4MjMxM30.OwMszZVSjg5ZjZeOxwArcyqC-8__vBCyAIWTuzRUjhs'; // Replace with your actual Supabase anon key
+const SUPABASE_URL = 'https://your-project-id.supabase.co'; 
+const SUPABASE_ANON_KEY = 'your-actual-anon-key-here';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let isLoginMode = true;
@@ -1243,18 +1216,7 @@ class UserList {
   }
 }
 
-async function handleAuth() {
-  try {
-    if (isLoginMode) {
-      await handleLogin();
-    } else {
-      await handleSignUp();
-    }
-  } catch (error) {
-    console.error('Authentication error:', error);
-    alert('Authentication failed. Please try again.');
-  }
-}
+function handleAuth() { isLoginMode ? handleLogin() : handleSignUp(); }
 
 const user = new UserList();
 
@@ -1424,11 +1386,10 @@ async function loadUsers() {
 
 async function saveData() {
   try {
-    // Optimized: Save all students in one bulk operation
+    // Optimized bulk saving
     const studentsArray = state.students.toArray();
     await saveStudent(studentsArray);
 
-    // Optimized: Save all topics in one bulk operation
     const topicsArray = state.topics.toArray();
     await saveTopic(topicsArray);
 
@@ -1448,46 +1409,38 @@ async function loadData() {
 
     // Load students
     const studentsData = await getAllStudents();
-    if (studentsData === null) throw new Error("Could not connect to Students table");
-
     state.students = new LinkedList();
     if (studentsData.length > 0) {
       studentsData.forEach(s => {
         s.streak = calculateStreak(s.loginHistory || []);
-        s.status = 'offline';
         state.students.append(s);
       });
     } else {
       // Load seed data if no data in Supabase
-      const seededStudents = SEED_STUDENTS.map(s => {
-        s.streak = calculateStreak(s.loginHistory || []);
-        s.status = 'offline';
+      for (const s of SEED_STUDENTS) {
+        s.streak = calculateStreak(s.loginHistory);
         state.students.append(s);
-        return s;
-      });
-      await saveStudent(seededStudents);
+        await saveStudent(s); // Save to Supabase
+      }
     }
 
     // Load topics
     const topicsData = await getAllTopics();
-    if (topicsData === null) throw new Error("Could not connect to Topics table");
-
     state.topics = new LinkedList();
     if (topicsData.length > 0) {
       topicsData.forEach(t => state.topics.append(t));
     } else {
       // Load seed data if no data in Supabase
-      const seededTopics = SEED_TOPICS.map(t => {
+      for (const t of SEED_TOPICS) {
         state.topics.append(t);
-        return t;
-      });
-      await saveTopic(seededTopics);
+        await saveTopic(t); // Save to Supabase
+      }
     }
 
     // Load activities
     const activitiesData = await getAllActivities();
     state.activities = new LinkedList();
-    if (activitiesData) activitiesData.forEach(a => state.activities.append(a));
+    activitiesData.forEach(a => state.activities.append(a));
 
     await syncAllStudentTasks();
     console.log('Data loaded from Supabase successfully');
@@ -1879,6 +1832,7 @@ async function generateActivities() {
   if (state.activities.size > 0) return; // Prevent "randomizing" on every refresh
   const types = ['solved','solved','solved','completed','started'];
   const topicsArr = state.topics.toArray();
+  const studentsArr = state.students.toArray();
   for (const s of studentsArr) {
     const count = Math.floor(Math.random() * 5 + 2);
     for (let i = 0; i < count; i++) {
@@ -1893,6 +1847,7 @@ async function generateActivities() {
     }
   }
 }
+
 /* ═══════════════════════════════════════════════════
    HEATMAP
 ═══════════════════════════════════════════════════ */
