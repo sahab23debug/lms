@@ -1879,7 +1879,7 @@ async function generateActivities() {
   if (state.activities.size > 0) return; // Prevent "randomizing" on every refresh
   const types = ['solved','solved','solved','completed','started'];
   const topicsArr = state.topics.toArray();
-  state.students.forEach(async (s) => {
+  for (const s of studentsArr) {
     const count = Math.floor(Math.random() * 5 + 2);
     for (let i = 0; i < count; i++) {
       const activityData = {
@@ -1891,9 +1891,8 @@ async function generateActivities() {
       state.activities.append(activityData);
       await saveActivity(activityData);
     }
-  });
+  }
 }
-
 /* ═══════════════════════════════════════════════════
    HEATMAP
 ═══════════════════════════════════════════════════ */
