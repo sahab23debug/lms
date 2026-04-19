@@ -694,6 +694,7 @@ class LinkedList {
   append(data) {
     const node = new Node(data);
     if (!this.head) { this.head = node; }
+    
     else { let c = this.head; while (c.next) c = c.next; c.next = node; }
     this._size++;
   }
@@ -1430,16 +1431,44 @@ async function loadData() {
     state.topics = new LinkedList();
     state.activities = new LinkedList();
 
+    // PRIORITY 1: Try localStorage first (fastest and most reliable)
     try {
-      // Initialize database tables
-      await initializeDatabase();
+      const storedStudents = localStorage.getItem(STORAGE.students);
+      const storedTopics = localStorage.getItem(STORAGE.topics);
 
-      // Try to load from Supabase
+      if (storedStudents && storedTopics) {
+        try {
+          const parsedStudents = JSON.parse(storedStudents);
+          const parsedTopics = JSON.parse(storedTopics);
+          
+          if (parsedStudents.length > 0 || parsedTopics.length > 0) {
+            parsedStudents.forEach(s => {
+              s.streak = calculateStreak(s.loginHistory || []);
+              state.students.append(s);
+            });
+            parsedTopics.forEach(t => state.topics.append(t));
+            
+            console.log(`✓ Loaded ${state.students.size} students and ${state.topics.size} topics from localStorage`);
+            await syncAllStudentTasks();
+            return;  // Data loaded successfully, exit
+          }
+        } catch (parseError) {
+          console.warn('localStorage data corrupted, clearing and using seed data:', parseError.message);
+          localStorage.removeItem(STORAGE.students);
+          localStorage.removeItem(STORAGE.topics);
+        }
+      }
+    } catch (error) {
+      console.log('localStorage check failed:', error.message);
+    }
+
+    // PRIORITY 2: Try Supabase
+    try {
+      await initializeDatabase();
       const studentsData = await getAllStudents();
       const topicsData = await getAllTopics();
       const activitiesData = await getAllActivities();
 
-      // If Supabase has data, use it
       if (studentsData.length > 0 || topicsData.length > 0) {
         studentsData.forEach(s => {
           s.streak = calculateStreak(s.loginHistory || []);
@@ -1448,55 +1477,46 @@ async function loadData() {
         topicsData.forEach(t => state.topics.append(t));
         activitiesData.forEach(a => state.activities.append(a));
         
-        // Save loaded data to localStorage
+        // Save loaded data to localStorage as backup
         localStorage.setItem(STORAGE.students, JSON.stringify(studentsData));
         localStorage.setItem(STORAGE.topics, JSON.stringify(topicsData));
-        console.log(`Loaded ${state.students.size} students and ${state.topics.size} topics from Supabase`);
-      } else {
-        throw new Error('No data in Supabase, checking localStorage');
+        console.log(`✓ Loaded ${state.students.size} students and ${state.topics.size} topics from Supabase`);
+        await syncAllStudentTasks();
+        return;  // Data loaded successfully, exit
       }
-    } catch (supabaseError) {
-      console.log('Supabase unavailable, loading from localStorage...');
-      // Fallback to localStorage
-      const storedStudents = localStorage.getItem(STORAGE.students);
-      const storedTopics = localStorage.getItem(STORAGE.topics);
+    } catch (error) {
+      console.log('Supabase unavailable:', error.message);
+    }
 
-      if (storedStudents && storedTopics) {
-        // Load from localStorage
-        const parsedStudents = JSON.parse(storedStudents);
-        const parsedTopics = JSON.parse(storedTopics);
-        
-        parsedStudents.forEach(s => {
-          if (!state.students.findById(s.id)) {
-            s.streak = calculateStreak(s.loginHistory || []);
-            state.students.append(s);
-          }
-        });
-        
-        parsedTopics.forEach(t => {
-          if (!state.topics.findById(t.id)) {
-            state.topics.append(t);
-          }
-        });
-        
-        console.log(`Loaded ${state.students.size} students and ${state.topics.size} topics from localStorage`);
-      } else {
-        // Only load seed data if localStorage is empty
-        console.log('No stored data found, loading seed data...');
-        SEED_STUDENTS.forEach(s => {
-          const studentCopy = {...s, streak: calculateStreak(s.loginHistory || [])};
-          state.students.append(studentCopy);
-        });
-        SEED_TOPICS.forEach(t => {
-          const topicCopy = {...t};
-          state.topics.append(topicCopy);
-        });
-        
-        // Save seed data to localStorage
-        localStorage.setItem(STORAGE.students, JSON.stringify(state.students.toArray()));
-        localStorage.setItem(STORAGE.topics, JSON.stringify(state.topics.toArray()));
-        console.log(`Loaded ${state.students.size} students and ${state.topics.size} topics from seed data`);
-      }
+    // PRIORITY 3: Fallback to seed data
+    console.log('Using seed data as fallback...');
+    SEED_STUDENTS.forEach(s => {
+      // Deep copy to avoid mutating original seed data
+      const studentCopy = {
+        ...s,
+        loginHistory: [...(s.loginHistory || [])],
+        topics: [...(s.topics || [])],
+        streak: calculateStreak(s.loginHistory || [])
+      };
+      state.students.append(studentCopy);
+    });
+    
+    SEED_TOPICS.forEach(t => {
+      // Deep copy to avoid mutating original seed data
+      const topicCopy = {
+        ...t,
+        tasks: [...(t.tasks || [])]
+      };
+      state.topics.append(topicCopy);
+    });
+    
+    // Save seed data to localStorage for persistence
+    try {
+      localStorage.setItem(STORAGE.students, JSON.stringify(state.students.toArray()));
+      localStorage.setItem(STORAGE.topics, JSON.stringify(state.topics.toArray()));
+      console.log(`✓ Loaded ${state.students.size} students and ${state.topics.size} topics from seed data (saved to localStorage)`);
+    } catch (saveError) {
+      console.warn('Failed to save seed data to localStorage:', saveError.message);
     }
 
     await syncAllStudentTasks();
