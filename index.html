@@ -371,13 +371,13 @@
     </div>
     <div class="form-group">
       <label class="login-label">Username</label>
-      <input class="login-input" type="text" id="login-ID" placeholder="admin" onkeydown="if(event.key==='Enter')handleAuth()">
+      <input class="login-input" type="text" id="login-ID" placeholder="admin" onkeydown="if(event.key==='Enter')handleAuth().catch(console.error)">
     </div>
     <div class="form-group">
       <label class="login-label">Password</label>
-      <input class="login-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleAuth()">
+      <input class="login-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleAuth().catch(console.error)">
     </div>
-    <button class="login-btn" id="auth-btn" onclick="handleAuth()">Login</button>
+    <button class="login-btn" id="auth-btn" onclick="handleAuth().catch(console.error)">Login</button>
     <div class="auth-footer">
       <span id="toggle-text">Don't have an account?</span>
       <a onclick="toggleAuthMode()" id="auth-toggle"> Create Account</a>
@@ -694,7 +694,7 @@ class LinkedList {
   append(data) {
     const node = new Node(data);
     if (!this.head) { this.head = node; }
-    
+
     else { let c = this.head; while (c.next) c = c.next; c.next = node; }
     this._size++;
   }
@@ -1220,7 +1220,17 @@ class UserList {
   }
 }
 
-function handleAuth() { isLoginMode ? handleLogin() : handleSignUp(); }
+async function handleAuth() {
+  try {
+    if (isLoginMode) {
+      await handleLogin();
+    } else {
+      await handleSignUp();
+    }
+  } catch (error) {
+    console.error('Authentication error:', error);
+  }
+}
 
 const user = new UserList();
 
