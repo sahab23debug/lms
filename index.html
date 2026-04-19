@@ -818,7 +818,7 @@ async function getUser(username) {
     return data;
   } catch (error) {
     console.error('Error getting user:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -860,7 +860,7 @@ async function getAllStudents() {
     return data || [];
   } catch (error) {
     console.error('Error getting all students:', error);
-    return [];
+    return null; // Return null to indicate error, not empty
   }
 }
 
@@ -915,7 +915,7 @@ async function getAllTopics() {
     return data || [];
   } catch (error) {
     console.error('Error getting all topics:', error);
-    return [];
+    return null; // Return null to indicate error, not empty
   }
 }
 
@@ -971,7 +971,7 @@ async function getAllActivities() {
     return data || [];
   } catch (error) {
     console.error('Error getting all activities:', error);
-    return [];
+    return null; // Return null to indicate error, not empty
   }
 }
 
@@ -1424,17 +1424,13 @@ async function loadUsers() {
 
 async function saveData() {
   try {
-    // Save students
+    // Optimized: Save all students in one bulk operation
     const studentsArray = state.students.toArray();
-    for (const student of studentsArray) {
-      await saveStudent(student);
-    }
+    await saveStudent(studentsArray);
 
-    // Save topics
+    // Optimized: Save all topics in one bulk operation
     const topicsArray = state.topics.toArray();
-    for (const topic of topicsArray) {
-      await saveTopic(topic);
-    }
+    await saveTopic(topicsArray);
 
     console.log('Data saved to Supabase successfully');
   } catch (error) {
@@ -1452,6 +1448,8 @@ async function loadData() {
 
     // Load students
     const studentsData = await getAllStudents();
+    if (studentsData === null) throw new Error("Could not connect to Students table");
+
     state.students = new LinkedList();
     if (studentsData.length > 0) {
       studentsData.forEach(s => {
@@ -1472,6 +1470,8 @@ async function loadData() {
 
     // Load topics
     const topicsData = await getAllTopics();
+    if (topicsData === null) throw new Error("Could not connect to Topics table");
+
     state.topics = new LinkedList();
     if (topicsData.length > 0) {
       topicsData.forEach(t => state.topics.append(t));
@@ -1487,7 +1487,7 @@ async function loadData() {
     // Load activities
     const activitiesData = await getAllActivities();
     state.activities = new LinkedList();
-    activitiesData.forEach(a => state.activities.append(a));
+    if (activitiesData) activitiesData.forEach(a => state.activities.append(a));
 
     await syncAllStudentTasks();
     console.log('Data loaded from Supabase successfully');
