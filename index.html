@@ -371,13 +371,13 @@
     </div>
     <div class="form-group">
       <label class="login-label">Username</label>
-      <input class="login-input" type="text" id="login-ID" placeholder="admin" onkeydown="if(event.key==='Enter')handleAuth()">
+      <input class="login-input" type="text" id="login-ID" placeholder="admin" onkeydown="if(event.key==='Enter')handleAuth().catch(console.error)">
     </div>
     <div class="form-group">
       <label class="login-label">Password</label>
       <input class="login-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleAuth()">
     </div>
-    <button class="login-btn" id="auth-btn" onclick="handleAuth()">Login</button>
+    <button class="login-btn" id="auth-btn" onclick="handleAuth().catch(console.error)">Login</button>
     <div class="auth-footer">
       <span id="toggle-text">Don't have an account?</span>
       <a onclick="toggleAuthMode()" id="auth-toggle"> Create Account</a>
@@ -838,6 +838,8 @@ async function getAllUsers() {
 // Student management functions
 async function saveStudent(studentData) {
   try {
+    // Optimized to handle single object or array for bulk saving
+    const isArray = Array.isArray(studentData);
     const { data, error } = await supabaseClient
       .from(TABLES.students)
       .upsert(studentData, { onConflict: 'id' });
@@ -1241,7 +1243,18 @@ class UserList {
   }
 }
 
-function handleAuth() { isLoginMode ? handleLogin() : handleSignUp(); }
+async function handleAuth() {
+  try {
+    if (isLoginMode) {
+      await handleLogin();
+    } else {
+      await handleSignUp();
+    }
+  } catch (error) {
+    console.error('Authentication error:', error);
+    alert('Authentication failed. Please try again.');
+  }
+}
 
 const user = new UserList();
 
@@ -1443,15 +1456,18 @@ async function loadData() {
     if (studentsData.length > 0) {
       studentsData.forEach(s => {
         s.streak = calculateStreak(s.loginHistory || []);
+        s.status = 'offline';
         state.students.append(s);
       });
     } else {
       // Load seed data if no data in Supabase
-      for (const s of SEED_STUDENTS) {
-        s.streak = calculateStreak(s.loginHistory);
+      const seededStudents = SEED_STUDENTS.map(s => {
+        s.streak = calculateStreak(s.loginHistory || []);
+        s.status = 'offline';
         state.students.append(s);
-        await saveStudent(s); // Save to Supabase
-      }
+        return s;
+      });
+      await saveStudent(seededStudents);
     }
 
     // Load topics
@@ -1461,10 +1477,11 @@ async function loadData() {
       topicsData.forEach(t => state.topics.append(t));
     } else {
       // Load seed data if no data in Supabase
-      for (const t of SEED_TOPICS) {
+      const seededTopics = SEED_TOPICS.map(t => {
         state.topics.append(t);
-        await saveTopic(t); // Save to Supabase
-      }
+        return t;
+      });
+      await saveTopic(seededTopics);
     }
 
     // Load activities
@@ -1728,7 +1745,7 @@ async function toggleTask(taskId) {
         // Log task completion activity
         await saveActivity({
           type: 'solved',
-          description: `${student.name} completed task: ${task.title}`,
+          description: `${student.name} completed task: ${task.description}`,
           studentId: student.id,
           timestamp: Date.now()
         });
