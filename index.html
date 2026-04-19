@@ -1386,93 +1386,96 @@ async function loadUsers() {
 
 async function saveData() {
   try {
-    // Optimized bulk saving
+    // Save students to Supabase
     const studentsArray = state.students.toArray();
-    await saveStudent(studentsArray);
+    for (const student of studentsArray) {
+      await saveStudent(student);
+    }
 
+    // Save topics to Supabase
     const topicsArray = state.topics.toArray();
-    await saveTopic(topicsArray);
+    for (const topic of topicsArray) {
+      await saveTopic(topic);
+    }
 
-    console.log('Data saved to Supabase successfully');
+    // Always save to localStorage as backup
+    localStorage.setItem(STORAGE.students, JSON.stringify(studentsArray));
+    localStorage.setItem(STORAGE.topics, JSON.stringify(topicsArray));
+    console.log('Data saved to Supabase and localStorage successfully');
   } catch (error) {
     console.error('Error saving data to Supabase:', error);
-    // Fallback to localStorage if Supabase fails
-    localStorage.setItem(STORAGE.students, JSON.stringify(state.students.toArray()));
-    localStorage.setItem(STORAGE.topics, JSON.stringify(state.topics.toArray()));
+    // Always save to localStorage even if Supabase fails
+    const studentsArray = state.students.toArray();
+    const topicsArray = state.topics.toArray();
+    localStorage.setItem(STORAGE.students, JSON.stringify(studentsArray));
+    localStorage.setItem(STORAGE.topics, JSON.stringify(topicsArray));
+    console.log('Data saved to localStorage (Supabase unavailable)');
   }
 }
 
 async function loadData() {
+  // Always initialize linked lists
+  state.students = new LinkedList();
+  state.topics = new LinkedList();
+  state.activities = new LinkedList();
+
   try {
     // Initialize database tables
     await initializeDatabase();
 
-    // Load students
+    // Try to load from Supabase
     const studentsData = await getAllStudents();
-    state.students = new LinkedList();
-    if (studentsData.length > 0) {
+    const topicsData = await getAllTopics();
+    const activitiesData = await getAllActivities();
+
+    // If Supabase has data, use it
+    if (studentsData.length > 0 || topicsData.length > 0) {
       studentsData.forEach(s => {
         s.streak = calculateStreak(s.loginHistory || []);
         state.students.append(s);
       });
-    } else {
-      // Load seed data if no data in Supabase
-      for (const s of SEED_STUDENTS) {
-        s.streak = calculateStreak(s.loginHistory);
-        state.students.append(s);
-        await saveStudent(s); // Save to Supabase
-      }
-    }
-
-    // Load topics
-    const topicsData = await getAllTopics();
-    state.topics = new LinkedList();
-    if (topicsData.length > 0) {
       topicsData.forEach(t => state.topics.append(t));
+      activitiesData.forEach(a => state.activities.append(a));
+      
+      // Save loaded data to localStorage
+      localStorage.setItem(STORAGE.students, JSON.stringify(studentsData));
+      localStorage.setItem(STORAGE.topics, JSON.stringify(topicsData));
+      console.log('Data loaded from Supabase successfully');
     } else {
-      // Load seed data if no data in Supabase
-      for (const t of SEED_TOPICS) {
-        state.topics.append(t);
-        await saveTopic(t); // Save to Supabase
-      }
+      throw new Error('No data in Supabase, checking localStorage');
     }
-
-    // Load activities
-    const activitiesData = await getAllActivities();
-    state.activities = new LinkedList();
-    activitiesData.forEach(a => state.activities.append(a));
-
-    await syncAllStudentTasks();
-    console.log('Data loaded from Supabase successfully');
   } catch (error) {
-    console.error('Error loading data from Supabase:', error);
-    // Fallback to localStorage if Supabase fails
+    console.error('Error loading from Supabase:', error.message);
+    // Fallback to localStorage
     const storedStudents = localStorage.getItem(STORAGE.students);
     const storedTopics = localStorage.getItem(STORAGE.topics);
 
-    state.students = new LinkedList();
-    state.topics = new LinkedList();
-    state.activities = new LinkedList();
-
-    if (storedStudents) {
+    if (storedStudents && storedTopics) {
+      // Load from localStorage
       JSON.parse(storedStudents).forEach(s => {
-        s.streak = calculateStreak(s.loginHistory);
+        s.streak = calculateStreak(s.loginHistory || []);
         state.students.append(s);
       });
-    } else {
-      SEED_STUDENTS.forEach(s => {
-        s.streak = calculateStreak(s.loginHistory);
-        state.students.append(s);
-      });
-    }
-
-    if (storedTopics) {
       JSON.parse(storedTopics).forEach(t => state.topics.append(t));
+      console.log('Data loaded from localStorage');
     } else {
-      SEED_TOPICS.forEach(t => state.topics.append(t));
+      // Only load seed data if localStorage is empty
+      SEED_STUDENTS.forEach(s => {
+        const studentCopy = {...s, streak: calculateStreak(s.loginHistory || [])};
+        state.students.append(studentCopy);
+      });
+      SEED_TOPICS.forEach(t => {
+        const topicCopy = {...t};
+        state.topics.append(topicCopy);
+      });
+      // Save seed data to localStorage
+      localStorage.setItem(STORAGE.students, JSON.stringify(state.students.toArray()));
+      localStorage.setItem(STORAGE.topics, JSON.stringify(state.topics.toArray()));
+      console.log('Seed data loaded (first launch)');
     }
-    await syncAllStudentTasks();
   }
+
+  await syncAllStudentTasks();
 }
 
 function getLoggedInStudent() {
